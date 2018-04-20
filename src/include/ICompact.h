@@ -22,9 +22,9 @@ public:
     virtual ErrorCode SymDifference(ICompact const& c) = 0;
     virtual ErrorCode MakeConvex() = 0;
 
-    static ICompact* CreateCompact(compact_base const& boundaries, IVector step);
-    static ICompact* CopyCompact(ICompact const& c);
-    static ICompact* MoveCompact(ICompact&& c);
+    static compact_ptr CreateCompact(compact_base const& boundaries, IVector step);
+    static compact_ptr CopyCompact(ICompact const& c);
+    static compact_ptr MoveCompact(ICompact&& c);
 protected:
 	ICompact() {};
 };
