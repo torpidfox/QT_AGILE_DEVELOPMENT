@@ -1,27 +1,30 @@
-#include<QSharedPointer>
-
-class IVector;
-class ICompact;
-
-class IProblem {
-public:
-	enum ErrorCode {
-
-	};
-	using arg_ptr = QSharedPointer<IVector const>;
-
-	static QSharedPointer<IProblem> createProblem();
-
-	virtual ErrorCode goalFunction(arg_ptr const args, arg_ptr params, double& res) = 0;
-	virtual ErrorCode goalFunctionByArgs(arg_ptr const args, double& res) = 0;
-	virtual ErrorCode goalFunctionByParams(arg_ptr params, double& res) = 0;
-	virtual size_t getArgsDim() const = 0;
-	virtual size_t getParamsDim() const = 0;
+#ifndef IPROBLEM_H
+#define IPROBLEM_H
+#include"opt.h"
 
 
-	template <int ORDER>
-	virtual ErrorCode derivativeByParams<ORDER>(size_t index, arg_ptr args, arg_ptr params, double& res) const = 0;
+typedef  QSharedPointer<IVector const> arg_ptr ;
 
-	virtual bool validateArgs(QSharedPointer<const ICompact> c) const = 0;
-	virtual bool validateParams(QSharedPointer<const ICompact> c) const = 0;
-};
+class IProblem{
+    public:
+
+        static IProblem* createProblem();
+
+        virtual opt::ErrorCode goalFunction(arg_ptr const args, arg_ptr params, double& res) = 0;
+        virtual opt::ErrorCode goalFunctionByArgs(arg_ptr const args, double& res) = 0;
+        virtual opt::ErrorCode goalFunctionByParams(arg_ptr params, double& res) = 0;
+        virtual size_t getArgsDim() const = 0;
+        virtual size_t getParamsDim() const = 0;
+
+
+        template <int ORDER>
+        #добавить двумерный индекс
+        virtual opt::ErrorCode derivativeByArgs<ORDER>(size_t index, arg_ptr args, arg_ptr params, double& res) const = 0;
+        virtual opt::ErrorCode derivativeByParams<ORDER>(size_t index, arg_ptr args, arg_ptr params, double& res) const = 0;
+
+        virtual bool validateArgs(QSharedPointer<ICompact> c) const = 0;
+        virtual bool validateParams(QSharedPointer<ICompact> c) const = 0;
+        virtual ~IProblem() {}
+    }
+
+#endif // IPROBLEM_H
