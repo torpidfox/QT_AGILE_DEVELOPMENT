@@ -1,114 +1,121 @@
-#include "include/IVectorImpl.h"
+#include "IVectorImpl.h"
 
 //add error logging!
 /*IVector::vector_ptr IVectorImpl::createVector(opt::Logger const& l) {
     opt::ReturnCode err;
     STATIC_CONSTRUCTOR(IVectorImpl, l);
 }*/
-
-IVectorImpl::IVectorImpl(IVectorImpl const& v){
-    _dim = v._dim;
-    _vals = v._vals;
-    _l = v._l;
+IVector* IVector::createVector(uint size)
+{
+    return IVectorImpl::createVector(size);
 }
 
-IVector::vector_ptr IVectorImpl::copyVector(const IVectorImpl& v) {
-    opt::ReturnCode err;
-    STATIC_CONSTRUCTOR(IVectorImpl, v);
+IVector* IVector::copyVector(const IVector& v)
+{
+    return IVectorImpl::copyVector(v);
 }
 
-/*IVector::vector_ptr IVectorImpl::moveVector(IVectorImpl &&v) {
-    opt::ReturnCode err;
-    STATIC_CONSTRUCTOR(IVectorImpl, std::move(v));
-}*/
+IVectorImpl::IVectorImpl(const IVector& v){
+    _dim = v.getDimension();
+    _vals = QVector<double>(_dim);
+    this->copyVector(v);
+}
+
+IVectorImpl::IVectorImpl(uint dim){
+    _dim = dim;
+    _vals = QVector<double>(_dim);
+}
+
+IVector* IVectorImpl::copyVector(const IVector& v)
+{
+    return new IVectorImpl(v);
+}
+
+IVector* IVectorImpl::createVector(uint dim)
+{
+    return new IVectorImpl(dim);
+}
+
 
 opt::ReturnCode IVectorImpl::add(IVector const& added)
 { 
-    DIM_CHECK(added);
+    DIM_CHECK(added)
 
-    opt::ReturnCode err = opt::ReturnCode::NO_ERRORS;
+    opt::ReturnCode err = opt::NO_ERRORS;
+    double tmp = 0;
 
-    for (unsigned int i = 0; i < _dim; i++)
-	{
-		double tmp = 0;
-		err = added.getElement(i, tmp);
-        if (err != opt::ReturnCode::NO_ERRORS)
-			return err;
+    for (uint i = 0; i < _dim; i++)
+    {
+        err = added.getElement(i, tmp);
+        if (err != opt::NO_ERRORS)
+            return err;
         _vals[i] += tmp;
-	}
-	return err;
-}
+    }
 
-opt::ReturnCode IVectorImpl::substract(IVector const & substracted)
-{
-	DIM_CHECK(substracted)
-
-    opt::ReturnCode err = opt::ReturnCode::NO_ERRORS;
-
-    for (unsigned int i = 0; i < _dim; i++)
-	{
-		double tmp = 0;
-        err = substracted.getElement(i, tmp);
-        if (err != opt::ReturnCode::NO_ERRORS)
-			return err;
-		_vals[i] -= tmp;
-	}
     return err;
 }
 
-opt::ReturnCode IVectorImpl::dotProduct(IVector const & multiplier)
+
+opt::ReturnCode IVectorImpl::dotProduct(const IVector& multiplier, double& res)
 {
     DIM_CHECK(multiplier)
 
-    opt::ReturnCode error = opt::ReturnCode::NO_ERRORS;
+    opt::ReturnCode error = opt::NO_ERRORS;
+    res = 0;
 
-    for (int i = 0; i < _dim; i++)
+    for (uint i = 0; i < _dim; i++)
 	{
-		double tmp = 0;
-		error = multiplier.getElement(i, tmp);
-        if (error != opt::ReturnCode::NO_ERRORS)
-			return error;
+        double tmp = 0;
 
-		_vals[i] *= tmp;
+        error = multiplier.getElement(i, tmp);
+        if (error)
+                return error;
+
+        res += _vals[i] * tmp;
 	}
+
 	return error;
 }
 
 
 opt::ReturnCode IVectorImpl::multiplyByScalar(double multipler)
 {
-    for (int i = 0; i < _dim; i++)
-	{
-		_vals[i] *= multipler;
-	}
-    return opt::ReturnCode::NO_ERRORS;
+    for (uint i = 0; i < _dim; i++)
+    {
+        _vals[i] *= multipler;
+    }
+
+    return opt::NO_ERRORS;
 }
 
-opt::ReturnCode IVectorImpl::getElement(size_t index, double & elem) const
+opt::ReturnCode IVectorImpl::getElement(size_t index, double& elem) const
 {
-	RANGE_CHECK(index)
+    RANGE_CHECK(index)
 
-	elem = _vals[index];
-    return opt::ReturnCode::NO_ERRORS;
+    elem = _vals[index];
+
+    return opt::NO_ERRORS;
 }
 
 opt::ReturnCode IVectorImpl::setElement(size_t index, double elem)
 {
-	RANGE_CHECK(index)
+    RANGE_CHECK(index)
+    _vals[index] = elem;
 
-	_vals[index] = elem;
-    return opt::ReturnCode::NO_ERRORS;
+    return opt::NO_ERRORS;
 }
 
-opt::ReturnCode IVectorImpl::setVector(IVector const & v)
+opt::ReturnCode IVectorImpl::setVector(const IVector& v)
 {
-	DIM_CHECK(v)
+    DIM_CHECK(v)
+    opt::ReturnCode err = opt::NO_ERRORS;
 
-    for (unsigned i = 0; i < _dim; i++){
-        v.getElement(i, _vals[i]);
-	}
+    for (unsigned i = 0; i < _dim; i++)
+    {
+        err = v.getElement(i, _vals[i]);
+    }
 
-    return opt::ReturnCode::NO_ERRORS;
+    return err;
 }
 
 double IVectorImpl::_norm_l2() const{
@@ -137,35 +144,81 @@ double IVectorImpl::norm(opt::TypeNorm t) const
 {
     switch(t)
     {
-    case opt::TypeNorm::NORM1:
+    case opt::NORM1:
     {
         return _norm_l1();
     }
-    case opt::TypeNorm::NORM2:
+    case opt::NORM2:
     {
         return _norm_l1();
     }
-    defualt:
+    default:
         return -1;
     }
-
-    return -1;
 }
 
-bool IVectorImpl::GT(opt::TypeNorm t, IVector const& v) const
+bool IVectorImpl::GT(opt::TypeNorm t, const IVector& v) const
 {
     return norm(t) > v.norm(t);
 }
 
-bool IVectorImpl::LT(opt::TypeNorm t, IVector const& v) const
+bool IVectorImpl::LT(opt::TypeNorm t, const IVector& v) const
 {
     return norm(t) < v.norm(t);
 }
 
-bool IVectorImpl::eq(opt::TypeNorm t, IVector const& v) const
+bool IVectorImpl::eq(opt::TypeNorm t, const IVector& v) const
 {
     return norm(t) == v.norm(t);
 }
 
+opt::ReturnCode IVectorImpl::substract(IVector const& substracted){
+    DIM_CHECK(substracted)
+
+    double buff = 0;
+    opt::ReturnCode err = opt::NO_ERRORS;
+
+    for (uint i = 0; i < _dim; i++)
+    {
+        err = substracted.getElement(i, buff);
+
+        if(err)
+            return err;
+
+        _vals[i] -= buff;
+    }
+
+    return err;
+}
+
+void IVectorImpl::unaryMinus()
+{
+    for (uint i = 0; i < _dim; i++)
+    {
+        _vals[i] = -_vals[i];
+    }
+}
+
+opt::ReturnCode IVectorImpl::eq(const IVector& v, bool& res) const
+{
+    DIM_CHECK(v)
+
+    double buff = 0;
+    opt::ReturnCode err = opt::NO_ERRORS;
+
+    for (uint i = 0; i < _dim; i++)
+    {
+        err = v.getElement(i, buff);
+
+        if(_vals[i] != buff)
+        {
+            res = false;
+            return err;
+        }
+    }
+
+    res = true;
+    return err;
+}
 
 
